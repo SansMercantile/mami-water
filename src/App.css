@@ -1,0 +1,10 @@
+/* Water Systems Styles */
+.water-gradient {
+  background: linear-gradient(135deg, #0369a1 0%, #0284c7 50%, #0ea5e9 100%);
+}
+
+.water-card {
+  background: rgba(3, 105, 161, 0.1);
+  border: 1px solid rgba(2, 132, 199, 0.2);
+  backdrop-filter: blur(10px);
+}
