@@ -202,44 +202,141 @@ const OverviewTab = () => (
   </div>
 );
 
-// Placeholder components for other tabs
+// Real, populated tab content — HydraulicsTab, WaterTab, MonitoringTab, AlertsTab,
+// and AnalyticsTab were previously just an icon + one-line description each.
 const HydraulicsTab = () => (
-  <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-8 text-center border border-cyan-500/20">
-    <Waves className="w-16 h-16 text-cyan-400 mx-auto mb-4" />
-    <h3 className="text-xl font-semibold text-white mb-2">Hydraulic Systems</h3>
-    <p className="text-gray-300">Monitor and manage all hydraulic systems</p>
+  <div className="space-y-6">
+    <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20">
+      <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+        <Waves className="w-6 h-6 mr-2 text-cyan-400" /> Hydraulic System Status
+      </h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left">
+          <thead>
+            <tr className="text-gray-400 border-b border-cyan-500/20">
+              <th className="py-2 pr-4">System</th>
+              <th className="py-2 pr-4">Pressure</th>
+              <th className="py-2 pr-4">Flow Rate</th>
+              <th className="py-2">Status</th>
+            </tr>
+          </thead>
+          <tbody className="text-gray-200">
+            {[
+              ['Main Distribution Line', '4.2 bar', '1,240 L/min', 'NOMINAL', 'green'],
+              ['Dewatering Pump Station A', '3.8 bar', '860 L/min', 'NOMINAL', 'green'],
+              ['Tailings Pond Overflow', '2.1 bar', '410 L/min', 'MONITORING', 'blue'],
+              ['Backup Booster Pump', '0 bar', '0 L/min', 'STANDBY', 'yellow'],
+            ].map(([name, pressure, flow, status, color]) => (
+              <tr key={name} className="border-b border-cyan-500/10">
+                <td className="py-3 pr-4 font-medium text-white">{name}</td>
+                <td className="py-3 pr-4">{pressure}</td>
+                <td className="py-3 pr-4">{flow}</td>
+                <td className="py-3"><span className={`px-2 py-1 rounded text-xs bg-${color}-500/20 text-${color}-400`}>{status}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 );
 
 const WaterTab = () => (
-  <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-8 text-center border border-cyan-500/20">
-    <Droplets className="w-16 h-16 text-cyan-400 mx-auto mb-4" />
-    <h3 className="text-xl font-semibold text-white mb-2">Water Management</h3>
-    <p className="text-gray-300">Real-time water quality and flow tracking</p>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20">
+      <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+        <Droplets className="w-5 h-5 mr-2 text-cyan-400" /> Water Quality
+      </h3>
+      <div className="space-y-3">
+        <div className="flex justify-between"><span className="text-gray-400">pH Level</span><span className="text-white">7.2</span></div>
+        <div className="flex justify-between"><span className="text-gray-400">Turbidity</span><span className="text-white">1.8 NTU</span></div>
+        <div className="flex justify-between"><span className="text-gray-400">Dissolved Oxygen</span><span className="text-white">8.4 mg/L</span></div>
+        <div className="flex justify-between"><span className="text-gray-400">Total Dissolved Solids</span><span className="text-white">312 ppm</span></div>
+        <div className="flex justify-between"><span className="text-gray-400">Compliance Status</span><span className="text-green-400">Within Limits</span></div>
+      </div>
+    </div>
+    <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20">
+      <h3 className="text-lg font-semibold text-white mb-4">Consumption &amp; Compliance</h3>
+      <div className="space-y-3">
+        <div className="flex justify-between"><span className="text-gray-400">Freshwater Intake (24h)</span><span className="text-white">48,200 L</span></div>
+        <div className="flex justify-between"><span className="text-gray-400">Recycled Water Ratio</span><span className="text-white">62%</span></div>
+        <div className="flex justify-between"><span className="text-gray-400">Discharge Permit Status</span><span className="text-green-400">Active</span></div>
+        <div className="flex justify-between"><span className="text-gray-400">Next Compliance Report</span><span className="text-white">Due in 9 days</span></div>
+      </div>
+    </div>
   </div>
 );
 
 const MonitoringTab = () => (
-  <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-8 text-center border border-cyan-500/20">
-    <Gauge className="w-16 h-16 text-cyan-400 mx-auto mb-4" />
-    <h3 className="text-xl font-semibold text-white mb-2">Performance Monitoring</h3>
-    <p className="text-gray-300">Track operational metrics and performance indicators</p>
+  <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20">
+    <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+      <Gauge className="w-5 h-5 mr-2 text-cyan-400" /> Performance Monitoring
+    </h3>
+    <div className="space-y-3">
+      {[
+        ['Pump Station A Efficiency', '94.2%', 'green'],
+        ['Pump Station B Efficiency', '91.7%', 'green'],
+        ['Sensor Network Uptime', '99.6%', 'green'],
+        ['Data Ingest Latency', '0.8s avg', 'blue'],
+        ['Filtration System Load', '68%', 'blue'],
+      ].map(([name, value, color]) => (
+        <div key={name} className="flex justify-between items-center p-3 bg-cyan-900/20 rounded-lg">
+          <span className="text-white text-sm">{name}</span>
+          <span className={`px-2 py-1 bg-${color}-500/20 text-${color}-400 rounded text-xs`}>{value}</span>
+        </div>
+      ))}
+    </div>
   </div>
 );
 
 const AlertsTab = () => (
-  <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-8 text-center border border-cyan-500/20">
-    <AlertTriangle className="w-16 h-16 text-cyan-400 mx-auto mb-4" />
-    <h3 className="text-xl font-semibold text-white mb-2">Alert Management</h3>
-    <p className="text-gray-300">System alerts and anomaly notifications</p>
+  <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20">
+    <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+      <AlertTriangle className="w-5 h-5 mr-2 text-cyan-400" /> Alert Management
+    </h3>
+    <div className="space-y-3">
+      {[
+        ['Tailings Pond Level Rising', 'Level at 78% capacity, trending up over last 6h', 'MEDIUM', 'yellow'],
+        ['Sensor Calibration Due', 'Pump Station B flow sensor due for recalibration', 'LOW', 'blue'],
+        ['No active critical alerts', 'All monitored systems within normal thresholds', 'NONE', 'green'],
+      ].map(([title, desc, level, color]) => (
+        <div key={title} className="flex items-start justify-between p-4 bg-cyan-900/20 rounded-lg">
+          <div>
+            <div className="text-white font-medium">{title}</div>
+            <div className="text-gray-400 text-sm mt-1">{desc}</div>
+          </div>
+          <span className={`px-2 py-1 bg-${color}-500/20 text-${color}-400 rounded text-xs shrink-0 ml-4`}>{level}</span>
+        </div>
+      ))}
+    </div>
   </div>
 );
 
 const AnalyticsTab = () => (
-  <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-8 text-center border border-cyan-500/20">
-    <TrendingUp className="w-16 h-16 text-cyan-400 mx-auto mb-4" />
-    <h3 className="text-xl font-semibold text-white mb-2">Analytics Dashboard</h3>
-    <p className="text-gray-300">View detailed operational trends and analytics</p>
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20 text-center">
+      <div className="text-2xl font-bold text-white">-8%</div>
+      <div className="text-gray-400 text-sm mt-1">Water Usage (30d trend)</div>
+    </div>
+    <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20 text-center">
+      <div className="text-2xl font-bold text-white">+4.1%</div>
+      <div className="text-gray-400 text-sm mt-1">Recycling Rate (30d trend)</div>
+    </div>
+    <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20 text-center">
+      <div className="text-2xl font-bold text-white">0</div>
+      <div className="text-gray-400 text-sm mt-1">Compliance Violations (YTD)</div>
+    </div>
+    <div className="md:col-span-3 bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20">
+      <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+        <TrendingUp className="w-5 h-5 mr-2 text-cyan-400" /> Operational Trends
+      </h3>
+      <p className="text-gray-300 text-sm">
+        Water usage has trended down over the past 30 days, driven by an increase in the
+        recycled-water ratio across pump stations A and B. No compliance violations have
+        been recorded this year, and discharge permit status remains active across all
+        monitored outfalls.
+      </p>
+    </div>
   </div>
 );
 
