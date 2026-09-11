@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import './App.css';
 import Dashboard from './pages/Dashboard';
+import { initDatadog } from './lib/datadog.js';
+
+initDatadog();
 
 // Mounts directly into the dashboard-root section embedded in the static landing
 // page (public/index.html) — not a full-page #root mount, since App.js's full-viewport
