@@ -1,13 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Droplets, AlertTriangle, Activity, Settings, Shield, Gauge, RefreshCw, Waves, TrendingUp } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
+const RISK_STYLE = {
+  'flood-watch': 'bg-red-500/20 text-red-400',
+  'drought-watch': 'bg-orange-500/20 text-orange-400',
+  'wet': 'bg-blue-500/20 text-blue-400',
+  'dry': 'bg-yellow-500/20 text-yellow-400',
+  'normal': 'bg-green-500/20 text-green-400',
+};
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [refreshing, setRefreshing] = useState(false);
   const [refreshStatus, setRefreshStatus] = useState('');
+  const [points, setPoints] = useState([]);
+  const [meta, setMeta] = useState({});
+  const [loadError, setLoadError] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/v1/points')
+      .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
+      .then(({ ok, j }) => {
+        if (!alive) return;
+        if (!ok) throw new Error(j.error || 'request failed');
+        setPoints(j.points ?? []);
+        setMeta({ source: j.source, fetchedAt: j.fetchedAt });
+      })
+      .catch((e) => alive && setLoadError(e.message))
+      .finally(() => alive && setLoading(false));
+    return () => { alive = false; };
+  }, []);
+
+  const riskCounts = points.reduce((acc, p) => { acc[p.risk.level] = (acc[p.risk.level] || 0) + 1; return acc; }, {});
+  const totalRain7d = points.reduce((s, p) => s + (p.hydro?.precipitation7dMm ?? 0), 0);
+  const avgSoil = points.length ? points.reduce((s, p) => s + (p.hydro?.topsoilMoisture ?? 0), 0) / points.length : 0;
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -33,19 +64,20 @@ const Dashboard = () => {
   ];
 
   const renderContent = () => {
+    const shared = { points, meta, loadError, loading, riskCounts, totalRain7d, avgSoil };
     switch (activeTab) {
       case 'overview':
-        return <OverviewTab />;
+        return <OverviewTab {...shared} />;
       case 'hydraulics':
-        return <HydraulicsTab />;
+        return <HydraulicsTab {...shared} />;
       case 'water':
-        return <WaterTab />;
+        return <WaterTab {...shared} />;
       case 'monitoring':
-        return <MonitoringTab />;
+        return <MonitoringTab {...shared} />;
       case 'alerts':
-        return <AlertsTab />;
+        return <AlertsTab {...shared} />;
       case 'analytics':
-        return <AnalyticsTab />;
+        return <AnalyticsTab {...shared} />;
       case 'system':
         return (
           <div className="space-y-6">
@@ -129,75 +161,72 @@ const Dashboard = () => {
   );
 };
 
-// Overview Tab Component
-const OverviewTab = () => (
+// Overview Tab Component — real catchment metrics from Open-Meteo.
+const OverviewTab = ({ points, meta, loadError, loading, riskCounts, totalRain7d, avgSoil }) => (
   <div className="space-y-6">
-    {/* Key Metrics */}
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20">
         <div className="flex items-center">
           <Droplets className="w-8 h-8 text-cyan-400 mr-3" />
           <div>
-            <p className="text-cyan-200 text-sm">Water Flow Rate</p>
-            <p className="text-2xl font-bold text-white">4,892 GPM</p>
+            <p className="text-cyan-200 text-sm">Monitored Waterways</p>
+            <p className="text-2xl font-bold text-white">{points.length}</p>
           </div>
         </div>
       </div>
-
       <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20">
         <div className="flex items-center">
           <Waves className="w-8 h-8 text-blue-400 mr-3" />
           <div>
-            <p className="text-blue-200 text-sm">Pressure Level</p>
-            <p className="text-2xl font-bold text-white">847 PSI</p>
+            <p className="text-blue-200 text-sm">7-day Rainfall (all basins)</p>
+            <p className="text-2xl font-bold text-white">{totalRain7d.toFixed(1)}mm</p>
           </div>
         </div>
       </div>
-
       <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20">
         <div className="flex items-center">
-          <Shield className="w-8 h-8 text-green-400 mr-3" />
+          <Shield className="w-8 h-8 text-orange-400 mr-3" />
           <div>
-            <p className="text-green-200 text-sm">Contamination Level</p>
-            <p className="text-2xl font-bold text-white">0.3 PPM</p>
+            <p className="text-orange-200 text-sm">Active Watches</p>
+            <p className="text-2xl font-bold text-white">{(riskCounts['flood-watch'] || 0) + (riskCounts['drought-watch'] || 0)}</p>
           </div>
         </div>
       </div>
-
       <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20">
         <div className="flex items-center">
           <Gauge className="w-8 h-8 text-teal-400 mr-3" />
           <div>
-            <p className="text-teal-200 text-sm">System Efficiency</p>
-            <p className="text-2xl font-bold text-white">98.2%</p>
+            <p className="text-teal-200 text-sm">Avg Topsoil Moisture</p>
+            <p className="text-2xl font-bold text-white">{(avgSoil * 100).toFixed(0)}%</p>
           </div>
         </div>
       </div>
     </div>
 
-    {/* Recent Activity */}
     <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20">
-      <h3 className="text-xl font-semibold text-white mb-4">Recent Activity</h3>
-      <div className="space-y-4">
-        {[
-          { time: '2 minutes ago', event: 'Water flow optimization completed', type: 'optimization' },
-          { time: '18 minutes ago', event: 'Quarterly contamination test passed', type: 'test' },
-          { time: '1 hour ago', event: 'Hydraulic system maintenance completed', type: 'maintenance' },
-          { time: '3 hours ago', event: 'Pressure relief valve inspection complete', type: 'inspection' }
-        ].map((activity, index) => (
-          <div key={index} className="flex items-center justify-between py-3 border-b border-cyan-500/20 last:border-b-0">
-            <div className="flex items-center">
-              <div className={`w-2 h-2 rounded-full mr-3 ${
-                activity.type === 'test' ? 'bg-green-400' :
-                activity.type === 'maintenance' ? 'bg-blue-400' :
-                activity.type === 'inspection' ? 'bg-yellow-400' : 'bg-cyan-400'
-              }`}></div>
-              <span className="text-gray-300">{activity.event}</span>
+      <h3 className="text-xl font-semibold text-white mb-4">Live Catchment Conditions (Open-Meteo)</h3>
+      {loading && <p className="text-gray-400 text-sm">Loading live hydrology…</p>}
+      {loadError && <p className="text-red-400 text-sm">Live hydrology unavailable: {loadError}</p>}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {points.map((p) => (
+          <div key={p.id} className="p-4 bg-cyan-900/20 rounded-lg">
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <div className="text-white font-medium">{p.name}</div>
+                <div className="text-gray-400 text-xs">{p.country} · {p.system}</div>
+              </div>
+              <span className={`px-2 py-1 rounded text-xs font-mono ${RISK_STYLE[p.risk.level] || RISK_STYLE.normal}`}>{p.risk.level.toUpperCase()}</span>
             </div>
-            <span className="text-cyan-400 text-sm">{activity.time}</span>
+            <div className="grid grid-cols-3 gap-2 text-center text-xs my-2">
+              <div className="bg-cyan-950/40 p-2 rounded"><div className="text-white font-bold">{p.hydro.precipitation7dMm}mm</div><div className="text-gray-400">rain / 7d</div></div>
+              <div className="bg-cyan-950/40 p-2 rounded"><div className="text-white font-bold">{(p.hydro.topsoilMoisture * 100).toFixed(0)}%</div><div className="text-gray-400">topsoil</div></div>
+              <div className="bg-cyan-950/40 p-2 rounded"><div className="text-white font-bold">{p.hydro.airTempC ?? '—'}°C</div><div className="text-gray-400">air temp</div></div>
+            </div>
+            <p className="text-gray-300 text-xs leading-relaxed">{p.risk.note}</p>
           </div>
         ))}
       </div>
+      <p className="text-gray-500 text-xs mt-4">Real catchment data from Open-Meteo · fetched {meta.fetchedAt ? new Date(meta.fetchedAt).toLocaleString() : '—'}. Flood/drought signals derived from real 7-day rainfall and soil saturation.</p>
     </div>
   </div>
 );
@@ -241,29 +270,38 @@ const HydraulicsTab = () => (
   </div>
 );
 
-const WaterTab = () => (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20">
-      <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-        <Droplets className="w-5 h-5 mr-2 text-cyan-400" /> Water Quality
-      </h3>
-      <div className="space-y-3">
-        <div className="flex justify-between"><span className="text-gray-400">pH Level</span><span className="text-white">7.2</span></div>
-        <div className="flex justify-between"><span className="text-gray-400">Turbidity</span><span className="text-white">1.8 NTU</span></div>
-        <div className="flex justify-between"><span className="text-gray-400">Dissolved Oxygen</span><span className="text-white">8.4 mg/L</span></div>
-        <div className="flex justify-between"><span className="text-gray-400">Total Dissolved Solids</span><span className="text-white">312 ppm</span></div>
-        <div className="flex justify-between"><span className="text-gray-400">Compliance Status</span><span className="text-green-400">Within Limits</span></div>
-      </div>
+const WaterTab = ({ points, loading, loadError }) => (
+  <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20">
+    <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+      <Droplets className="w-5 h-5 mr-2 text-cyan-400" /> Monitored Water Systems (real data)
+    </h3>
+    {loading && <p className="text-gray-400 text-sm">Loading live hydrology…</p>}
+    {loadError && <p className="text-red-400 text-sm">Live hydrology unavailable: {loadError}</p>}
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm text-left">
+        <thead>
+          <tr className="text-gray-400 border-b border-cyan-500/20">
+            <th className="py-2 pr-4">Waterway</th>
+            <th className="py-2 pr-4">Basin</th>
+            <th className="py-2 pr-4">Rain / 7d</th>
+            <th className="py-2 pr-4">Topsoil</th>
+            <th className="py-2">Risk</th>
+          </tr>
+        </thead>
+        <tbody className="text-gray-200">
+          {points.map((p) => (
+            <tr key={p.id} className="border-b border-cyan-500/10">
+              <td className="py-3 pr-4 font-medium text-white">{p.name}</td>
+              <td className="py-3 pr-4">{p.system}</td>
+              <td className="py-3 pr-4">{p.hydro.precipitation7dMm}mm</td>
+              <td className="py-3 pr-4">{(p.hydro.topsoilMoisture * 100).toFixed(0)}%</td>
+              <td className="py-3"><span className={`px-2 py-1 rounded text-xs ${RISK_STYLE[p.risk.level] || RISK_STYLE.normal}`}>{p.risk.level.toUpperCase()}</span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
-    <div className="bg-cyan-500/10 backdrop-blur-sm rounded-lg p-6 border border-cyan-500/20">
-      <h3 className="text-lg font-semibold text-white mb-4">Consumption &amp; Compliance</h3>
-      <div className="space-y-3">
-        <div className="flex justify-between"><span className="text-gray-400">Freshwater Intake (24h)</span><span className="text-white">48,200 L</span></div>
-        <div className="flex justify-between"><span className="text-gray-400">Recycled Water Ratio</span><span className="text-white">62%</span></div>
-        <div className="flex justify-between"><span className="text-gray-400">Discharge Permit Status</span><span className="text-green-400">Active</span></div>
-        <div className="flex justify-between"><span className="text-gray-400">Next Compliance Report</span><span className="text-white">Due in 9 days</span></div>
-      </div>
-    </div>
+    <p className="text-gray-500 text-xs mt-4">Real catchment conditions from Open-Meteo. Water-quality lab metrics (pH, turbidity, DO) require physical sensor integration — shown only when real sensors are connected.</p>
   </div>
 );
 
