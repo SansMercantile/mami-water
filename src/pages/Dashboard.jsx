@@ -23,7 +23,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     let alive = true;
-    fetch('/api/v1/points')
+    fetch(`${API_BASE_URL}/api/v1/points`)
       .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
       .then(({ ok, j }) => {
         if (!alive) return;
